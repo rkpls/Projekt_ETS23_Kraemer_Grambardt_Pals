@@ -1,34 +1,18 @@
-import machine
+from machine import Pin
 import neopixel
-import time
 
-NUM_PIXELS = 12
-PIN_NUM = 15
+# Define the number of LEDs and the pin they're connected to
+num_leds = 12  # Change this to match the number of LEDs in your strip
+pin_led = 16     # Change this to match the GPIO pin you've connected the strip to
 
-np = neopixel.NeoPixel(machine.Pin(PIN_NUM), NUM_PIXELS)
+# Initialize the Neopixel strip
+np = neopixel.NeoPixel(Pin(pin_led), num_leds)
 
-def set_all_pixels(r, g, b):
-    for i in range(NUM_PIXELS):
+# Function to set all LEDs to a specific color
+def set_all_leds(r, g, b):
+    for i in range(num_leds):
         np[i] = (r, g, b)
     np.write()
 
-def clear_all_pixels():
-    set_all_pixels(0, 0, 0)
-
-def test_neopixels():
-    print("Testing NeoPixels...")
-    while True:
-        # Set all pixels to red
-        set_all_pixels(255, 0, 0)
-        time.sleep(1)
-        # Set all pixels to green
-        set_all_pixels(0, 255, 0)
-        time.sleep(1)
-        # Set all pixels to blue
-        set_all_pixels(0, 0, 255)
-        time.sleep(1)
-        # Clear all pixels
-        clear_all_pixels()
-        time.sleep(1)
-
-test_neopixels()
+# Set all LEDs to red
+set_all_leds(255, 0, 0)

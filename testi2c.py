@@ -5,7 +5,7 @@ pin_SDA = 9
 pin_SCL = 8
 
 
-i2c1 = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
+i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
 
 def scan_i2c():
     print('Scan i2c')

@@ -1,113 +1,102 @@
-import gc
-import json
-from machine import Pin, SoftI2C, unique_id
-from utime import ticks_ms, ticks_diff, sleep_ms
-import network
-from ubinascii import hexlify
-from umqtt.simple import MQTTClient
+from time import sleep_ms
+from machine import Pin, SoftI2C, SoftSPI
+from dht import DHT11
+from bme280_float import BME280
+import CCS811
+from mq135 import MQ135
+import sh1106
 
-from bme280_float import BME280 as bme_280
-import CCS811 as ccs_811
-import bh1750 as bh_1750
-import sh1106 as sh_1106
+pin_bme_sda = 12
+pin_bme_scl = 13
+pin_ccs_sda = 27
+pin_ccs_scl = 14
 
-pin_scl = Pin(8)
-pin_sda = Pin(9)
-i2s_data_pin = 4
-i2s_clk_pin = 5
-i2s_ws_pin = 6
-pin_vent = Pin(16, Pin.OUT)
+mq135 = MQ135(35)
+dht11 = DHT11(Pin(34))
 
-i2c = SoftI2C(scl=pin_scl, sda=pin_sda, freq=1000000)
+pin_sck = 18
+pin_mosi = 23
+pin_miso = 22
+pin_res = 4
+pin_dc = 15
+pin_cs = 2
 
-pin_vent.value(1)
+spi = SoftSPI(sck=Pin(pin_sck), mosi=Pin(pin_mosi), miso=Pin(pin_miso), baudrate=4000000)
+oled = sh1106.SH1106_SPI(128, 64, spi, Pin(pin_dc), Pin(pin_res), Pin(pin_cs))
 
-bme280 = bme_280(i2c=i2c)
-bh1750 = bh_1750(0x23, i2c)
-ccs811 = ccs_811(i2c=i2c)
-oled = sh_1106(128, 64, i2c, Pin(0), 0x3c) 
+pin_air = Pin(25, Pin.OUT)
+pin_rpm = Pin(26, Pin.IN)
 
-temp = []
-humid = []
-baro = []
-bright = []
-co2 = []
+i2c_bme = SoftI2C(scl=Pin(pin_bme_scl), sda=Pin(pin_bme_sda), freq=1000000)
+i2c_ccs = SoftI2C(scl=Pin(pin_ccs_scl), sda=Pin(pin_ccs_sda), freq=1000000)
 
-ssid = 'Telekom_Pals'
-password = 'fk_afd!'
-wlan = network.WLAN(network.STA_IF)
-MQTT_SERVER = '192.168.2.41'
-CLIENT_ID = hexlify(unique_id())
-MQTT_TOPIC = 'KGP'
+pin_air.value(1)
+pin_air.on()
 
+bme280 = BME280(i2c=i2c_bme)
+s = CCS811.CCS811(i2c=i2c_ccs)
+
+temp = 0
+humid = 0
+baro = 0
+quality = 0
+
+print("Start")
 oled.sleep(False)
+pin_air.on()
+while True:
+    try:
+        temp = (bme280.value_t)
+    except:
+        temp = "ERR"
+    try:
+        humid = (bme280.value_h)    
+    except:
+        humid = "ERR"
+    try:    
+        baro = (bme280.value_p)
+    except:
+        baro = "ERR"
+    try:
+        if s.data_ready():
+            carbon = s.eCO2
+    except:
+        carbon = "ERR"
+    try:
+        dht11.measure()
+        temperature = dht11.temperature()
+        humidity = dht11.humidity()
 
-def connect_wifi():
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if not wlan.isconnected():
-        print('connecting')
-        wlan.connect(ssid, password)
-        while not wlan.isconnected():
-            pass
-    return wlan
+        rzero = mq135.get_rzero()
+        corrected_rzero = mq135.get_corrected_rzero(temperature, humidity)
+        resistance = mq135.get_resistance()
+        ppm = mq135.get_ppm()
+        corrected_ppm = mq135.get_corrected_ppm(temperature, humidity)
 
-def average(values):
-    if len(values) > 0:
-        return sum(values) / len(values)
-    else:
-        return 1
+        print("DHT11 Temperature: " + str(temperature) +"\t Humidity: "+ str(humidity))
+        print("MQ135 RZero: " + str(rzero) +"\t Corrected RZero: "+ str(corrected_rzero)+
+              "\t Resistance: "+ str(resistance) +"\t PPM: "+str(ppm)+
+              "\t Corrected PPM: "+str(corrected_ppm)+"ppm")
+    except:
+        print("ERR")
     
-def update_data():
-    global temp, humid, baro, bright, co2
-    temp.append(bme280.value_t)
-    if len(temp) >= 5:
-        temp.pop(0)
-        temp = average(temp)
-    humid.append(bme280.value_h)
-    if len(humid) >= 5:
-        humid.pop(0)
-        humid = average(humid)
-    baro.append(bme280.value_b)
-    if len(baro) >= 5:
-        baro.pop(0)
-        baro = average(baro)
-    bright.append(bh1750.measurement)
-    if len(bright) >= 5:
-        bright.pop(0)
-        bright = average(bright)
-    if ccs811.data_ready():
-        co2.append(ccs811.eCO2)
-        if len(co2) >= 5:
-            co2.pop(0)
-            co2 = average(co2)
-        
-def updata_oled():
     t_s = str(temp)
     h_s = str(humid)
     b_s = str(baro)
-    c_s = str(co2)
-    l_s = str(bright)
+    c_s = str(carbon)
+    q_s = str(quality)
     
     oled.fill(0)
     oled.text(t_s, 0, 0, 1)
     oled.text(h_s, 64, 0, 1)
     oled.text(b_s, 0, 16, 1)
     oled.text(c_s, 64, 16, 1)
-    oled.text(l_s, 0, 32, 1)
+    oled.text(b_s, 0, 32, 1)
+    oled.text("-", 64, 32, 1)
+    oled.text("-", 0, 48, 1)
+    oled.text("-", 64, 48, 1)
     oled.show()
+    sleep_ms(1000)
+    
+    
 
-
-connect_wifi()
-gc.enable()
-
-pin_vent.value(1)
-
-while True:
-    time = ticks_ms()
-    interval = 1000
-    if (ticks_diff(time, passed) > interval):
-        for i in range (5):
-            update_data()
-        updata_oled()
-    passed = time

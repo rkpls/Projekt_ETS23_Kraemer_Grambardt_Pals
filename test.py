@@ -1,69 +1,45 @@
-import gc
-import network
 from machine import Pin, SoftI2C
-from utime import ticks_ms, ticks_diff
-
-from bme280_float import *
-from CCS811 import CCS811
+import machine
+from time import sleep_ms
+import utime
+from bme280_float import BME280
 from bh1750 import BH1750
+import CCS811
+import sh1106
 
-pin_scl = Pin(8)
-pin_sda = Pin(9)
-i2s_data_pin = 4
-i2s_clk_pin = 5
-i2s_ws_pin = 6
-pin_vent = Pin(16, Pin.OUT)
+pin_SDA = 9
+pin_SCL = 8
 
-i2c = SoftI2C(scl=pin_scl, sda=pin_sda, freq=1000000)
+pin_air = Pin(15, Pin.OUT)
 
-bme280 = BME280(i2c=i2c)
-bh1750 = BH1750(0x23, i2c)
-
+bright = []
 temp = []
 humid = []
 baro = []
-bright =[]
-co2 = []
+cc = []
+db = []
 
-passed = 0
+i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
 
-def average(values):
-    if len(values) > 0:
-        return sum(values) / len(values)
-    else:
-        return 1
+bh1750 = BH1750(0x23, i2c)
+bme280 = BME280(i2c=i2c)
+ccs = CCS811.CCS811(i2c, addr=0x5a)
 
-def update_data():
-    global temp, humid, baro, bright, co2
-    temp.append(bme280.value_t)
-    if len(temp) >= 5:
-        temp.pop(0)
-        temp = average(temp)
-    humid.append(bme280.value_h)
-    if len(humid) >= 5:
-        humid.pop(0)
-        humid = average(humid)
-    baro.append(bme280.value_b)
-    if len(baro) >= 5:
-        baro.pop(0)
-        baro = average(baro)
-    bright.append(bh1750.measurement)
-    if len(bright) >= 5:
-        bright.pop(0)
-        bright = average(bright)
-
-gc.enable()
-pin_vent.value(1)
-
-print(bme280.values)
-print(bh1750.measurement)
+oled = sh1106.SH1106_I2C(128, 64, i2c, Pin(0), 0x3c)
+oled.sleep(False)
 
 while True:
-    time = ticks_ms()
-    interval = 1000
-    if (ticks_diff(time, passed) > interval):
-        for i in range(5):
-            update_data()
-    passed = time
-    
-    
+    bright = str(bh1750.measurement)
+    temp = str(bme280.value_t)
+    humid = str(bme280.value_h)
+    baro = str(bme280.value_p)
+    if ccs.data_ready():
+        cc = str('%d ppm' % (ccs.eCO2))
+    sleep_ms(1000)
+    oled.fill(0)
+    oled.text(bright, 4, 0, 1)
+    oled.text(temp, 4, 10, 1)
+    oled.text(humid, 4, 20, 1)
+    oled.text(baro, 4, 30, 1)
+    oled.text(cc, 4, 40, 1)
+    oled.show()
