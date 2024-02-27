@@ -12,13 +12,6 @@ pin_SCL = 8
 
 pin_air = Pin(15, Pin.OUT)
 
-bright = []
-temp = []
-humid = []
-baro = []
-cc = []
-db = []
-
 i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
 
 bh1750 = BH1750(0x23, i2c)
