@@ -1,3 +1,20 @@
+
+"""
+ESP32-S3-DevKitC V4/MicroPython
+Libraries / Info:
++ bme280 - https://github.com/robert-hh/BME280
++ bh1750 - https://github.com/flrrth/pico-bh1750
++ ccs811 - https://github.com/Notthemarsian/CCS811
++ inmp441 - https://docs.micropython.org/en/latest/library/machine.I2S.html
++ sh1106 - https://github.com/robert-hh/SH1106
+
+Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
+
+--- V2: 28.02.2024 ---
+--- Jan Krämer, David Grambardt, Riko Pals ---
+
+"""
+
 import gc
 from machine import Pin, PWM, SoftI2C,  unique_id
 from utime import ticks_ms, ticks_diff, sleep_ms
