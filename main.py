@@ -1,4 +1,3 @@
-
 """
 ESP32-S3-DevKitC V4/MicroPython
 Libraries / Info:
@@ -18,7 +17,6 @@ Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
 import gc
 from machine import Pin, PWM, SoftI2C,  unique_id
 from utime import ticks_ms, ticks_diff, sleep_ms
-import uasyncio as asyncio
 
 import network
 from ubinascii import hexlify
@@ -30,8 +28,6 @@ from bh1750 import BH1750
 import CCS811
 import sh1106
 
-loop = asyncio.get_event_loop()
-
 # ---------- CHANGABLE VARS ----------
 ssid = 'BZTG-IoT'
 password = 'WerderBremen24'
@@ -41,7 +37,6 @@ CLIENT_ID = hexlify(unique_id())
 MQTT_TOPIC = 'sensorwerte'
 
 # ---------- DATA ----------
-
 data_b = 0
 data_t = 0
 data_h = 0
@@ -52,7 +47,6 @@ data_d = 0
 c = 0
 
 # ---------- VARS ----------
-
 bright = []
 temp = []
 humid = []
