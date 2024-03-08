@@ -15,8 +15,9 @@ Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
 """
 
 import gc
-from machine import Pin, PWM, SoftI2C,  unique_id
+from machine import Pin, PWM, SoftI2C, I2S, unique_id, reset
 from utime import ticks_ms, ticks_diff, sleep_ms
+import asyncio
 
 import network
 from ubinascii import hexlify
@@ -54,20 +55,29 @@ baro = []
 cc = []
 dB = []
 
-passed_oled = 0
 index_list = 0
-passed_sensors = 0
-passed_mqtt = 0
 
 # ---------- PINS ----------
+pin_vent = PWM(Pin(15))
 pin_SDA = 9
 pin_SCL = 8
+mic_data = Pin(6, Pin.IN)
+mic_clk = Pin(5, Pin.IN)
+mic_ws = Pin(4, Pin.IN)
 
-pin_Air = Pin.OUT(15)
-pin_wled = 16
-
-# ---------- I2C + SENSORS + OLED----------
+# ---------- I2C + I2S + SENSORS + OLED----------
 i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
+
+i2s = I2S(2,
+            sck=mic_clk,
+            ws=mic_ws,
+            ss=mic_data,
+            mode=I2S.RX,
+            bits=16,
+            format=I2S.MONO,
+            rate=16000,
+            ibuf=20000)
+
 bh1750 = BH1750(0x23, i2c)
 bme280 = BME280(i2c=i2c)
 ccs = CCS811.CCS811(i2c, addr=0x5a)
@@ -94,82 +104,88 @@ def average(values):
         return sum(values) / len(values)
     else:
         return 1
+    
+def read_peak():
+    i2s.start()
+    buffer = bytearray(256)
+    i2s.readinto(buffer)
+    peak = max(buffer)
+    i2s.stop()
+    return peak
 
-def read_c(value):
-    try:
-        if ccs.data_ready():
-            value = ccs.eCO2
-        return value
-    except Exception as e:
-        print("Error:", e)
-
-
-def oled_w():
-    global passed_oled, index_list
-    interval = 3000
+async def oled_w():
+    global index_list
     werte = [average(bright), average(temp), average(humid), average(baro), average(cc)]
-    print(werte)
-    time = ticks_ms()
-    if (ticks_diff(time, passed_oled) > interval):
+    while True:
         wert = werte[index_list]
         oled.fill(0)
         oled.text(str(wert), 8, 24, 1)
         oled.show()
-        index += 1
+        index_list += 1
         if index_list >= len(werte):
             index_list = 0
-    passed_oled = time
-
-
-def sensors_read():
-    global passed_sensors, bright, temp, humid, baro, cc, c, data_b, data_t, data_h, data_p, data_c
-    interval = 500
-    time = ticks_ms()
-    if (ticks_diff(time, passed_sensors) > interval):
-        b = bh1750.measurement
+        await asyncio.sleep_ms(3000)
+    
+async def sensors_read():
+    global bright, temp, humid, baro, cc, c, dB, data_b, data_t, data_h, data_p, data_c, data_d
+    while True:
+        b = int(bh1750.measurement)
         bright.append(b)
         data_b = b
-        t = bme280.value_t
+        t = round(bme280.value_t,1)
         data_t = t
         temp.append(t)
-        h = bme280.value_h
+        h = round(bme280.value_h,1)
         data_h = h
         humid.append(h)
-        p = bme280.value_p
+        p = int(bme280.value_p * 0.01)
         data_p = p
         baro.append(p)
         if ccs.data_ready():
+            sleep_ms(10)
             c = ccs.eCO2
-            if c != 400:                #lesefehler (ausgabe 400) nicht übernehemen
-                data_c = c
         cc.append(c)
-    passed_sensors = time
+        dB = read_peak()
+        data_d = dB
+        dB.append(dB)
+        await asyncio.sleep_ms(200)
 
-def mqtt_send():
-    global CLIENT_ID, MQTT_SERVER, MQTT_TOPIC, passed_mqtt
-    time = ticks_ms()
-    interval = 5000
-    if (ticks_diff(time, passed_mqtt) > interval):
+async def mqtt_send():
+    global CLIENT_ID, MQTT_SERVER, MQTT_TOPIC
+    while True:
         client = MQTTClient(CLIENT_ID, MQTT_SERVER)
         client.connect()
         werte = {
-            'Bright:': data_b,
+            'Bright': data_b,
             'Temp': data_t,
             'Humid': data_h,
             'Baro': data_p,
-            'CCS': data_c,
-            'dB': data_d,
+            'Carbon': data_c,
+            'Noise': data_d,
             }
         dump = json.dumps(werte)
         print(str(dump))
         client.publish(MQTT_TOPIC, dump)
         client.disconnect()
-    passed_mqtt = time
+        await asyncio.sleep_ms(2000)        
 
 gc.collect()
 connect_wifi()
-while True:
-    sensors_read()
-    mqtt_send()
-    oled_w()
+
+loop = asyncio.get_event_loop()
+
+pin_vent.freq(1000)
+pin_vent.duty(1023)
+
+try:
+    loop.create_task(sensors_read())
+    loop.create_task(mqtt_send())
+    loop.create_task(oled_w())
+    loop.run_forever()
+except Exception as e:
+    print("Error:", e)
+finally:
+    loop.close()
+    sleep_ms(10000)
+    reset()
 
