@@ -24,12 +24,12 @@ from ubinascii import hexlify
 from umqtt.simple import MQTTClient
 import json
 import neopixel
-"""
+
 from bme280_float import BME280
 from bh1750 import BH1750
 import CCS811
 import sh1106
-"""
+
 # ---------- STATIC VARS ----------
 ssid = 'BZTG-IoT'                                           #Schulwlan
 password = 'WerderBremen24'
@@ -64,7 +64,7 @@ n = 12
 np = neopixel.NeoPixel(Pin(16), n)
 
 # ---------- I2C + I2S + SENSORS + OLED----------
-"""
+
 i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
 i2s = I2S(0,
             sck=sck_pin, ws=ws_pin, sd=sd_pin,
@@ -79,7 +79,7 @@ bme280 = BME280(i2c=i2c)
 ccs = CCS811.CCS811(i2c, addr=0x5a)
 oled = sh1106.SH1106_I2C(128, 64, i2c, Pin(0), 0x3c)
 oled.sleep(False)
-"""
+
 # ----------- DEFS ----------
 def connect_wifi():                                         #fn für WLAN
     wlan = network.WLAN(network.STA_IF)
@@ -299,15 +299,15 @@ connect_wifi()
 pin_vent.freq(1000)
 pin_vent.duty(1023)                                                 #anstellen des Lüftern
 
-#led_reset()
+led_reset()
 
 loop.close()
 
 try:
-    #loop.create_task(sensors_read())
+    loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
-    #loop.create_task(oled_w())
-    #loop.create_tast(np())
+    loop.create_task(oled_w())
+    loop.create_tast(np())
     loop.run_forever()
 except Exception as e:
     print("Error:", e)
