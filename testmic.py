@@ -1,41 +1,38 @@
 from machine import I2S, Pin
+from time import sleep_ms
+import ustruct
 
 # GPIO-Pins für den INMP441
-sd_pin = Pin(6, Pin.IN)
-sck_pin = Pin(5, Pin.IN)
-ws_pin = Pin(4, Pin.IN)
+sd_pin = Pin(4)
+sck_pin = Pin(5)
+ws_pin = Pin(6)
 
 # I2S-Konfiguration
-i2s = I2S(2,
-          sck=sck_pin,
-          ws=ws_pin,
-          sd=sd_pin,
-          mode=I2S.RX,
-          bits=16,
-          format=I2S.MONO,
-               rate=22050,
-               ibuf=20000)
+i2s = I2S(0,
+            sck=sck_pin, ws=ws_pin, sd=sd_pin,
+            mode=I2S.RX,
+            bits=16,
+            format=I2S.MONO,
+            rate=16000,
+            ibuf=20000)
 
-# Funktion zum Lesen eines Peaks
+
 def read_peak():
-  # Starten der I2S-Übertragung
-  i2s.start()
-
-  # Puffer zum Speichern der Audiodaten
+  i2s.init(sck=sck_pin, ws=ws_pin, sd=sd_pin,
+            mode=I2S.RX,
+            bits=16,
+            format=I2S.MONO,
+            rate=16000,
+            ibuf=20000)
   buffer = bytearray(256)
-
-  # Lesen von 256 Audiodaten
   i2s.readinto(buffer)
+  liste = list(buffer)
+  noise = sum(liste) / len(liste)
+  i2s.deinit()
+  return noise
 
-  # Berechnen des Peak-Werts
-  peak = max(buffer)
 
-  # Stoppen der I2S-Übertragung
-  i2s.stop()
-
-  return peak
-
-# Endlosschleife zum Lesen von Peaks
 while True:
   peak = read_peak()
   print(peak)
+  sleep_ms(1000)
