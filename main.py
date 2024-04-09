@@ -301,8 +301,6 @@ pin_vent.duty(1023)                                                 #anstellen d
 
 led_reset()
 
-loop.close()
-
 try:
     loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
