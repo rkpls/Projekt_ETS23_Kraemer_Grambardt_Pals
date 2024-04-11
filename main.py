@@ -57,11 +57,11 @@ dB = []
 pin_vent = PWM(Pin(15))
 pin_SDA = 9
 pin_SCL = 8
-sd_pin = Pin(4)
-sck_pin = Pin(5)
+sd_pin = Pin(5)
+sck_pin = Pin(4)
 ws_pin = Pin(6)
-n = 12
-np = neopixel.NeoPixel(Pin(16), n)
+led_ring = neopixel.NeoPixel(Pin(16), 12)
+
 
 # ---------- I2C + I2S + SENSORS + OLED----------
 
@@ -115,83 +115,97 @@ def read_peak():                                            #fn für das Mikrofo
   return noise
 
 def led_reset():                                            #fn zum initialem zurücksetzen der ws2812's
-    for i in range (n):
-        np[i] = (0, 0, 0)
-        np.write()
+    led_ring[0] = (0, 0, 0)
+    led_ring[1] = (0, 0, 0)
+    led_ring[2] = (0, 0, 0)
+    led_ring[3] = (0, 0, 0)
+    led_ring[4] = (0, 0, 0)
+    led_ring[5] = (0, 0, 0)
+    led_ring[6] = (0, 0, 0)
+    led_ring[7] = (0, 0, 0)
+    led_ring[8] = (0, 0, 0)
+    led_ring[9] = (0, 0, 0)
+    led_ring[10] = (0, 0, 0)
+    led_ring[11] = (0, 0, 0)
+    led_ring.write()
               
 # ----------- LOOPS ----------
 
 async def np():                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
-    global temp, humid, cc, dB
+    global data_t, data_h, data_c, data_n
     passed = 0
     interval = 1000
     while True:
+        temp = data_t
+        humid = data_h
+        cc = data_c
+        dB = data_n
         time = ticks_ms()
         if (ticks_diff(time, passed) > interval):
             if temp >= 20 and temp <= 23:
-                np[0] = (0, 255, 0)
-                np[1] = (0, 255, 0)
-                np[2] = (0, 255, 0)
+                led_ring[0] = (0, 255, 0)
+                led_ring[1] = (0, 255, 0)
+                led_ring[2] = (0, 255, 0)
             
             if temp >= 18 and temp < 20 or temp >23 and temp <= 25:
-                np[0] = (255, 255, 0)
-                np[1] = (255, 255, 0)
-                np[2] = (255, 255, 0)
+                led_ring[0] = (255, 255, 0)
+                led_ring[1] = (255, 255, 0)
+                led_ring[2] = (255, 255, 0)
             
             if temp < 18 or temp > 25:
-                np[0] = (255, 0, 0)
-                np[1] = (255, 0, 0)
-                np[2] = (255, 0, 0)
+                led_ring[0] = (255, 0, 0)
+                led_ring[1] = (255, 0, 0)
+                led_ring[2] = (255, 0, 0)
             
             
             if humid >= 40 and humid <= 60:
-                np[3] = (0, 255, 0)
-                np[4] = (0, 255, 0)
-                np[5] = (0, 255, 0)
+                led_ring[3] = (0, 255, 0)
+                led_ring[4] = (0, 255, 0)
+                led_ring[5] = (0, 255, 0)
             
             if humid >= 30 and humid < 40 or humid > 60 and humid <= 70:
-                np[3] = (255, 255, 0)
-                np[4] = (255, 255, 0)
-                np[5] = (255, 255, 0)
+                led_ring[3] = (255, 255, 0)
+                led_ring[4] = (255, 255, 0)
+                led_ring[5] = (255, 255, 0)
             
             if humid < 30 or humid > 70:
-                np[3] = (255, 0, 0)
-                np[4] = (255, 0, 0)
-                np[5] = (255, 0, 0)
+                led_ring[3] = (255, 0, 0)
+                led_ring[4] = (255, 0, 0)
+                led_ring[5] = (255, 0, 0)
             
             
             if cc <= 1000:
-                np[6] = (0, 255, 0)
-                np[7] = (0, 255, 0)
-                np[8] = (0, 255, 0)
+                led_ring[6] = (0, 255, 0)
+                led_ring[7] = (0, 255, 0)
+                led_ring[8] = (0, 255, 0)
             
             if cc > 1000 and cc < 2000:
-                np[6] = (255, 255, 0)
-                np[7] = (255, 255, 0)
-                np[8] = (255, 255, 0)
+                led_ring[6] = (255, 255, 0)
+                led_ring[7] = (255, 255, 0)
+                led_ring[8] = (255, 255, 0)
             
             if cc > 2000:
-                np[6] = (255, 0, 0)
-                np[7] = (255, 0, 0)
-                np[8] = (255, 0, 0)
+                led_ring[6] = (255, 0, 0)
+                led_ring[7] = (255, 0, 0)
+                led_ring[8] = (255, 0, 0)
             
             
             if dB <= 50:
-                np[9] = (0, 255, 0)
-                np[10] = (0, 255, 0)
-                np[11] = (0, 255, 0)
+                led_ring[9] = (0, 255, 0)
+                led_ring[10] = (0, 255, 0)
+                led_ring[11] = (0, 255, 0)
             
             if dB >50 and dB < 65:
-                np[9] = (255, 255, 0)
-                np[10] = (255, 255, 0)
-                np[11] = (255, 255, 0)
+                led_ring[9] = (255, 255, 0)
+                led_ring[10] = (255, 255, 0)
+                led_ring[11] = (255, 255, 0)
             
             if dB >65:
-                np[9] = (255, 0, 0)
-                np[10] = (255, 0, 0)
-                np[11] = (255, 0, 0)
+                led_ring[9] = (255, 0, 0)
+                led_ring[10] = (255, 0, 0)
+                led_ring[11] = (255, 0, 0)
             
-            np.write()
+            led_ring.write()
             gc.collect()
             passed = time
         await asyncio.sleep_ms(10)
@@ -199,7 +213,7 @@ async def np():                                             #schleife zum aktual
 async def oled_w():                                         #schleife zum aktualisieren des Displays
     global data_b, data_t, data_h, data_p, data_c, data_n
     namen = ['Helligkeit:', 'Temperatur:', 'Feuchtigkeit:', 'Atmos. Druck:', 'Co2 Anteil:', 'Lautstaerke:']
-    werte = [str(int(data_b))  + ' Lux', str(round(data_t,1)) + ' C', str(round(data_h,1)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
+    werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
     passed = 0
     interval = 3000
     index_list = 0
@@ -235,7 +249,7 @@ async def sensors_read():                                   #schleife zum ausles
             try:
                 t = int(bme280.value_t)
                 temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
-                data_t = average(temp)
+                data_t = average(temp) -5
             except:
                 print("konnte Temperatur nicht auslesen")
             try:                
@@ -305,12 +319,15 @@ try:
     loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
     loop.create_task(oled_w())
-    loop.create_tast(np())
+    loop.create_task(np())
     loop.run_forever()
 except Exception as e:
     print("Error:", e)
 finally:
     loop.close()
-    print("manual reset")
+    print("automatic reset in 5s")
+    sleep_ms(5000)
+    
+
 
 

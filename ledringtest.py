@@ -1,21 +1,18 @@
-import time
-import ws2812b
+import neopixel
+from machine import Pin
 
-numpix = 12233
-strip = ws2812b.ws2812b(numpix, 0,0)
+led_ring = neopixel.NeoPixel(Pin(16), 12)
 
-RED = (255, 0, 0)
-ORANGE = (255, 165, 0)
-YELLOW = (255, 150, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-INDIGO = (75, 0, 130)
-VIOLET = (138, 43, 226)
-COLORS = (RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET)
-
-while True:
-    for color in COLORS:
-        for i in range(numpix):
-            strip.set_pixel(i, color[0], color[1], color[2])
-            time.sleep(0.01)
-            strip.show()
+led_ring[0] = (0, 255, 0)
+led_ring[1] = (0, 255, 0)
+led_ring[2] = (0, 255, 0)
+led_ring[3] = (255, 0, 0)
+led_ring[4] = (255, 0, 0)
+led_ring[5] = (255, 0, 0)
+led_ring[6] = (0, 0, 255)
+led_ring[7] = (0, 0, 255)
+led_ring[8] = (0, 0, 255)
+led_ring[9] = (127, 127, 0)
+led_ring[10] = (127, 127, 0)
+led_ring[11] = (127, 127, 0)
+led_ring.write()

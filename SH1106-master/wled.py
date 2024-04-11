@@ -1,7 +1,7 @@
 import machine, neopixel
 
 num = 12
-pin = machine.Pin(15)
+pin = machine.Pin(16)
 pixel = neopixel.NeoPixel(pin,num)
 
 for i in range(30,1,1):
