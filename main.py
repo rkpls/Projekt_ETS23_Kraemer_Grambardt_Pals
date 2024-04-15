@@ -16,7 +16,7 @@ Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
 
 import gc
 from machine import Pin, PWM, SoftI2C, I2S, unique_id, reset
-from utime import ticks_ms, ticks_diff, sleep_ms, localtime
+from utime import ticks_ms, ticks_diff, sleep_ms
 import asyncio
 
 import network
@@ -60,7 +60,7 @@ pin_SCL = 8
 sd_pin = Pin(5)
 sck_pin = Pin(4)
 ws_pin = Pin(6)
-led_ring = neopixel.NeoPixel(Pin(16), 12)                               #1 draht Bus für wled/neopixel protokoll
+np = neopixel.NeoPixel(Pin(16), 12)                               #1 draht Bus für wled/neopixel protokoll
 
 # ---------- I2C + I2S + SENSORS + OLED----------
 
@@ -114,23 +114,23 @@ def read_peak():                                            #fn für das Mikrofo
   return noise
 
 def led_reset():                                                            #fn zum initialem zurücksetzen der ws2812's
-    led_ring[0] = (0, 0, 0)
-    led_ring[1] = (0, 0, 0)
-    led_ring[2] = (0, 0, 0)
-    led_ring[3] = (0, 0, 0)
-    led_ring[4] = (0, 0, 0)
-    led_ring[5] = (0, 0, 0)
-    led_ring[6] = (0, 0, 0)
-    led_ring[7] = (0, 0, 0)
-    led_ring[8] = (0, 0, 0)
-    led_ring[9] = (0, 0, 0)
-    led_ring[10] = (0, 0, 0)
-    led_ring[11] = (0, 0, 0)
-    led_ring.write()
+    np[0] = (0, 0, 0)
+    np[1] = (0, 0, 0)
+    np[2] = (0, 0, 0)
+    np[3] = (0, 0, 0)
+    np[4] = (0, 0, 0)
+    np[5] = (0, 0, 0)
+    np[6] = (0, 0, 0)
+    np[7] = (0, 0, 0)
+    np[8] = (0, 0, 0)
+    np[9] = (0, 0, 0)
+    np[10] = (0, 0, 0)
+    np[11] = (0, 0, 0)
+    np.write()
               
 # ---------- THREAD DEF ----------
 
-async def np():                                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
+async def led():                                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
     global data_t, data_h, data_c, data_n
     passed = 0
     interval = 1000
@@ -142,69 +142,69 @@ async def np():                                                             #sch
         time = ticks_ms()
         if (ticks_diff(time, passed) > interval):
             if temp >= 20 and temp <= 23:
-                led_ring[0] = (0, 255, 0)
-                led_ring[1] = (0, 255, 0)
-                led_ring[2] = (0, 255, 0)
+                np[0] = (0, 255, 0)
+                np[1] = (0, 255, 0)
+                np[2] = (0, 255, 0)
             
             if temp >= 18 and temp < 20 or temp >23 and temp <= 25:
-                led_ring[0] = (255, 255, 0)
-                led_ring[1] = (255, 255, 0)
-                led_ring[2] = (255, 255, 0)
+                np[0] = (255, 255, 0)
+                np[1] = (255, 255, 0)
+                np[2] = (255, 255, 0)
             
             if temp < 18 or temp > 25:
-                led_ring[0] = (255, 0, 0)
-                led_ring[1] = (255, 0, 0)
-                led_ring[2] = (255, 0, 0)
+                np[0] = (255, 0, 0)
+                np[1] = (255, 0, 0)
+                np[2] = (255, 0, 0)
             
             
             if humid >= 40 and humid <= 60:
-                led_ring[3] = (0, 255, 0)
-                led_ring[4] = (0, 255, 0)
-                led_ring[5] = (0, 255, 0)
+                np[3] = (0, 255, 0)
+                np[4] = (0, 255, 0)
+                np[5] = (0, 255, 0)
             
             if humid >= 30 and humid < 40 or humid > 60 and humid <= 70:
-                led_ring[3] = (255, 255, 0)
-                led_ring[4] = (255, 255, 0)
-                led_ring[5] = (255, 255, 0)
+                np[3] = (255, 255, 0)
+                np[4] = (255, 255, 0)
+                np[5] = (255, 255, 0)
             
             if humid < 30 or humid > 70:
-                led_ring[3] = (255, 0, 0)
-                led_ring[4] = (255, 0, 0)
-                led_ring[5] = (255, 0, 0)
+                np[3] = (255, 0, 0)
+                np[4] = (255, 0, 0)
+                np[5] = (255, 0, 0)
             
             
             if cc <= 1000:
-                led_ring[6] = (0, 255, 0)
-                led_ring[7] = (0, 255, 0)
-                led_ring[8] = (0, 255, 0)
+                np[6] = (0, 255, 0)
+                np[7] = (0, 255, 0)
+                np[8] = (0, 255, 0)
             
             if cc > 1000 and cc < 2000:
-                led_ring[6] = (255, 255, 0)
-                led_ring[7] = (255, 255, 0)
-                led_ring[8] = (255, 255, 0)
+                np[6] = (255, 255, 0)
+                np[7] = (255, 255, 0)
+                np[8] = (255, 255, 0)
             
             if cc > 2000:
-                led_ring[6] = (255, 0, 0)
-                led_ring[7] = (255, 0, 0)
-                led_ring[8] = (255, 0, 0)
+                np[6] = (255, 0, 0)
+                np[7] = (255, 0, 0)
+                np[8] = (255, 0, 0)
             
             
             if dB <= 50:
-                led_ring[9] = (0, 255, 0)
-                led_ring[10] = (0, 255, 0)
-                led_ring[11] = (0, 255, 0)
+                np[9] = (0, 255, 0)
+                np[10] = (0, 255, 0)
+                np[11] = (0, 255, 0)
             
             if dB >50 and dB < 65:
-                led_ring[9] = (255, 255, 0)
-                led_ring[10] = (255, 255, 0)
-                led_ring[11] = (255, 255, 0)
+                np[9] = (255, 255, 0)
+                np[10] = (255, 255, 0)
+                np[11] = (255, 255, 0)
             
             if dB >65:
-                led_ring[9] = (255, 0, 0)
-                led_ring[10] = (255, 0, 0)
-                led_ring[11] = (255, 0, 0)
+                np[9] = (255, 0, 0)
+                np[10] = (255, 0, 0)
+                np[11] = (255, 0, 0)
             
-            led_ring.write()
+            np.write()
             gc.collect()
             passed = time
         await asyncio.sleep_ms(10)
@@ -323,7 +323,7 @@ try:                                                                        #auf
     loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
     loop.create_task(oled_w())
-    loop.create_task(np())
+    loop.create_task(led())
     loop.run_forever()
 except Exception as e:
     print("Error:", e)
@@ -331,7 +331,7 @@ finally:
     loop.close()
     print("automatic reset in 5s")
     sleep_ms(5000)
-    reset()                                                                 #bei error autom. neustart nach 5 sek
+    #reset()                                                                 #bei error autom. neustart nach 5 sek
     
 
 
