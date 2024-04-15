@@ -9,7 +9,7 @@ Libraries / Info:
 
 Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
 
---- V3: 09.04.2024 ---
+--- V4: 15.04.2024 ---
 --- Jan Krämer, David Grambardt, Riko Pals ---
 
 """
@@ -31,7 +31,7 @@ import CCS811
 import sh1106
 
 # ---------- STATIC VARS ----------
-ssid = 'BZTG-IoT'                                           #Schulwlan
+ssid = 'BZTG-IoT'                                                       #Schulwlan
 password = 'WerderBremen24'
 wlan = network.WLAN(network.STA_IF)
 MQTT_SERVER = 'broker.hivemq.com'
@@ -40,13 +40,13 @@ MQTT_TOPIC = 'sensorwerte/*'
 loop = asyncio.get_event_loop()
 
 # ---------- DATA ----------
-data_b = 420
-data_t = 69
-data_h = 4200
-data_p = 420
-data_c = 420
-data_n = 69
-bright = []
+data_b = 0                                                              #globale variablen
+data_t = 0
+data_h = 0
+data_p = 0
+data_c = 0
+data_n = 0
+bright = []                                                             #Listen, verwendet zum mitteln der Werte
 temp = []
 humid = []
 baro = []
@@ -54,19 +54,18 @@ cc = []
 dB = []
 
 # ---------- PINS ----------
-pin_vent = PWM(Pin(15))
+pin_vent = PWM(Pin(15))                                                 #pwm Pin für Lüfter
 pin_SDA = 9
 pin_SCL = 8
 sd_pin = Pin(5)
 sck_pin = Pin(4)
 ws_pin = Pin(6)
-led_ring = neopixel.NeoPixel(Pin(16), 12)
-
+led_ring = neopixel.NeoPixel(Pin(16), 12)                               #1 draht Bus für wled/neopixel protokoll
 
 # ---------- I2C + I2S + SENSORS + OLED----------
 
-i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)
-i2s = I2S(0,
+i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)          #2 draht i2c Bus für Olded, bh1750, bme280, ccs
+i2s = I2S(0,                                                            #3 draht i2s Bus für Mikrofon 
             sck=sck_pin, ws=ws_pin, sd=sd_pin,
             mode=I2S.RX,
             bits=32,
@@ -100,7 +99,7 @@ def average(values):                                        #fn zum mitteln der 
     else:
         return 1
     
-def read_peak():                                            #fn für das Mikrofon
+def read_peak():                                            #fn für das Mikrofon (aus Bilbliothek)
   i2s.init(sck=sck_pin, ws=ws_pin, sd=sd_pin,
             mode=I2S.RX,
             bits=32,
@@ -110,11 +109,11 @@ def read_peak():                                            #fn für das Mikrofo
   buffer = bytearray(256)
   i2s.readinto(buffer)
   liste = list(buffer)
-  noise = (sum(liste) / len(liste) +1) / 256 * 91 + 30      #prozent(log) zu dB [max = 91dB SNR=61dB min = 30]
+  noise = (sum(liste) / len(liste) +1) / 256 * 91 + 30                      #prozent(logarithmisch) zu dBA [max = 91dB SNR=61dB min = 30]
   i2s.deinit()
   return noise
 
-def led_reset():                                            #fn zum initialem zurücksetzen der ws2812's
+def led_reset():                                                            #fn zum initialem zurücksetzen der ws2812's
     led_ring[0] = (0, 0, 0)
     led_ring[1] = (0, 0, 0)
     led_ring[2] = (0, 0, 0)
@@ -129,9 +128,9 @@ def led_reset():                                            #fn zum initialem zu
     led_ring[11] = (0, 0, 0)
     led_ring.write()
               
-# ----------- LOOPS ----------
+# ---------- THREAD DEF ----------
 
-async def np():                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
+async def np():                                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
     global data_t, data_h, data_c, data_n
     passed = 0
     interval = 1000
@@ -210,13 +209,13 @@ async def np():                                             #schleife zum aktual
             passed = time
         await asyncio.sleep_ms(10)
 
-async def oled_w():                                         #schleife zum aktualisieren des Displays
+async def oled_w():                                                         #schleife zum aktualisieren des Displays
     global data_b, data_t, data_h, data_p, data_c, data_n
     passed = 0
     interval = 3000
     index_list = 0
     while True:
-                                                            #aktualsieren der indexierten liste mit aktuellen Daten
+                                                                            #aktualsieren der indexierten liste mit aktuellen Daten
         namen = ['Helligkeit:', 'Temperatur:', 'Feuchtigkeit:', 'Atmos. Druck:', 'Co2 Anteil:', 'Lautstaerke:']
         werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
         time = ticks_ms()
@@ -227,14 +226,14 @@ async def oled_w():                                         #schleife zum aktual
             oled.text(name, 8, 12, 1)
             oled.text(wert, 8, 36, 1)
             oled.show()
-            index_list += 1									#erhöhung des Index für die nächste Anzeige
+            index_list += 1									                #erhöhung des Index für die nächste Anzeige
             if index_list >= len(werte):
-                index_list = 0								#reset wenn alle durchgelaufen sind
+                index_list = 0								                #reset wenn alle durchgelaufen sind
             gc.collect()
             passed = time
         await asyncio.sleep_ms(1)
         
-async def sensors_read():                                   #schleife zum auslesen aller Sensoren
+async def sensors_read():                                                   #schleife zum auslesen aller Sensoren
     global bright, temp, humid, baro, cc, dB, data_b, data_t, data_h, data_p, data_c, data_n
     passed = 0
     interval = 1000
@@ -309,15 +308,18 @@ async def mqtt_send():                                              		#schleife 
             gc.collect()
             passed = time
         await asyncio.sleep_ms(10)
+# ---------- STARTUP ----------
 
 connect_wifi()
 
 pin_vent.freq(1000)
-pin_vent.duty(1023)                                                 #anstellen des Lüftern
+pin_vent.duty(1023)                                                         #anstellen des Lüftern
 
 led_reset()
 
-try:
+# ---------- LOOP ----------
+
+try:                                                                        #aufsetzen der parallel laufenden Funktionen
     loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
     loop.create_task(oled_w())
@@ -329,6 +331,7 @@ finally:
     loop.close()
     print("automatic reset in 5s")
     sleep_ms(5000)
+    reset()                                                                 #bei error autom. neustart nach 5 sek
     
 
 
