@@ -212,12 +212,13 @@ async def np():                                             #schleife zum aktual
 
 async def oled_w():                                         #schleife zum aktualisieren des Displays
     global data_b, data_t, data_h, data_p, data_c, data_n
-    namen = ['Helligkeit:', 'Temperatur:', 'Feuchtigkeit:', 'Atmos. Druck:', 'Co2 Anteil:', 'Lautstaerke:']
-    werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
     passed = 0
     interval = 3000
     index_list = 0
     while True:
+                                                            #aktualsieren der indexierten liste mit aktuellen Daten
+        namen = ['Helligkeit:', 'Temperatur:', 'Feuchtigkeit:', 'Atmos. Druck:', 'Co2 Anteil:', 'Lautstaerke:']
+        werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
         time = ticks_ms()
         if (ticks_diff(time, passed) > interval):
             name = namen[index_list]
@@ -226,9 +227,9 @@ async def oled_w():                                         #schleife zum aktual
             oled.text(name, 8, 12, 1)
             oled.text(wert, 8, 36, 1)
             oled.show()
-            index_list += 1
+            index_list += 1									#erhöhung des Index für die nächste Anzeige
             if index_list >= len(werte):
-                index_list = 0
+                index_list = 0								#reset wenn alle durchgelaufen sind
             gc.collect()
             passed = time
         await asyncio.sleep_ms(1)
@@ -246,25 +247,25 @@ async def sensors_read():                                   #schleife zum ausles
                 data_b = average(bright)                                    #werte werden direkt nach abfrage gemittelt, Liste könnte sonst unkontrollierbar lang werden
             except:
                 print("konnte Helligkeit nicht auslesen")
-            try:
+            try:                											#lesen mitteln und schreiben von bme temperatur
                 t = int(bme280.value_t)
                 temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
                 data_t = average(temp) -5
             except:
                 print("konnte Temperatur nicht auslesen")
-            try:                
+            try:                											#lesen mitteln und schreiben von bme feuchtigkeit                
                 h = int(bme280.value_h)
                 humid.append(h)
                 data_h = average(humid)
             except:
                 print("konnte Feuchtigkeit nicht auslesen")
-            try:                
+            try:                											#lesen mitteln und schreiben von bme druck
                 p = int(bme280.value_p * 0.01)
                 baro.append(p)
                 data_p = average(baro)
             except:
                 print("konnte atmos. Druck nicht auslesen")
-            try:            
+            try:                											#lesen mitteln und schreiben von ccs co2 anteil
                 if ccs.data_ready():
                     c = (ccs.eCO2)
                     if c != 0:
@@ -272,35 +273,36 @@ async def sensors_read():                                   #schleife zum ausles
                         data_c = average(cc)
             except:
                 print("konnte Co2 Gehalt nicht auslesen")
-            try:            
+            try:                											#lesen mitteln und schreiben des microfon Lautstärkewertes (aufruf funktion oben)
                 noise = read_peak()
-                dB.append(noise)
-                data_n = average(dB)
+                if noise < 120:												#ersten fehlerhaften wwert nach initialisierung filtern
+                    dB.append(noise)
+                    data_n = average(dB)
             except:
                 print("konnte Lautstärke nicht auslesen")
                             
-            gc.collect()                                            #ram säubern
+            gc.collect()                                            		#ram säubern
             passed = time
         await asyncio.sleep_ms(10)
 
-async def mqtt_send():                                              #schleife zum senden der Daten 
+async def mqtt_send():                                              		#schleife zum senden der Daten 
     global CLIENT_ID, MQTT_SERVER, MQTT_TOPIC
     passed = 0
     interval = 5000
     client = MQTTClient(CLIENT_ID, MQTT_SERVER)
     while True:
         time = ticks_ms()
-        if (ticks_diff(time, passed) > interval):                   #schleife wird alle 5 Sekunden durchlaufen
+        if (ticks_diff(time, passed) > interval):                   		#schleife wird alle 5 Sekunden durchlaufen
             client.connect()
             werte = {
-                'Bright': round(data_b,0),
+                'Bright': int(data_b),
                 'Temp': round(data_t,1),
                 'Humid': round(data_h,1),
-                'Baro': round(data_p,0),
-                'Carbon': round(data_c,0),
-                'Noise': round(data_n,0),
+                'Baro': int(data_p),
+                'Carbon': int(data_c),
+                'Noise': int(data_n),
                 }
-            dump = json.dumps(werte)                                #json formatieren und versenden
+            dump = json.dumps(werte)                                		#json formatieren und versenden
             client.publish(MQTT_TOPIC, dump)
             print(dump)
             client.disconnect()
