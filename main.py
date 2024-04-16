@@ -31,21 +31,25 @@ import CCS811
 import sh1106
 
 # ---------- STATIC VARS ----------
-ssid = 'BZTG-IoT'                                                       #Schulwlan
-password = 'WerderBremen24'
+#ssid = 'BZTG-IoT'                                                       #Schulwlan
+#password = 'WerderBremen24'
 wlan = network.WLAN(network.STA_IF)
-MQTT_SERVER = 'broker.hivemq.com'
+#MQTT_SERVER = 'broker.hivemq.com'
 CLIENT_ID = hexlify(unique_id())
 MQTT_TOPIC = 'sensorwerte/*'
 loop = asyncio.get_event_loop()
 
+ssid = 'Zenbook-14-Pals'
+password = 'Micropython'
+MQTT_SERVER = '192.168.137.1'
+
 # ---------- DATA ----------
-data_b = 0                                                              #globale variablen
-data_t = 0
-data_h = 0
-data_p = 0
-data_c = 0
-data_n = 0
+data_b = 0                                                             #globale variablen
+data_t = 20
+data_h = 50
+data_p = 10000
+data_c = 400
+data_n = 50
 bright = []                                                             #Listen, verwendet zum mitteln der Werte
 temp = []
 humid = []
@@ -249,7 +253,7 @@ async def sensors_read():                                                   #sch
             try:                											#lesen mitteln und schreiben von bme temperatur
                 t = int(bme280.value_t)
                 temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
-                data_t = average(temp) -5
+                data_t = average(temp) -3
             except:
                 print("konnte Temperatur nicht auslesen")
             try:                											#lesen mitteln und schreiben von bme feuchtigkeit                
@@ -333,6 +337,3 @@ finally:
     sleep_ms(5000)
     #reset()                                                                 #bei error autom. neustart nach 5 sek
     
-
-
-
