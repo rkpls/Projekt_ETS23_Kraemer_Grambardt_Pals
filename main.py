@@ -11,7 +11,6 @@ Beschreibung: https://nds.edumaps.de/28168/79685/98e7g9w0dw
 
 --- V4: 15.04.2024 ---
 --- Jan Krämer, David Grambardt, Riko Pals ---
-
 """
 
 import gc
@@ -20,7 +19,7 @@ from utime import ticks_ms, ticks_diff, sleep_ms
 import asyncio
 
 import network
-from ubinascii import hexlify
+from ubinascii import hexlify                                           #verwendet für mqqt geräte ID mit unique_id
 from umqtt.simple import MQTTClient
 import json
 import neopixel
@@ -40,12 +39,12 @@ MQTT_TOPIC = 'sensorwerte/*'
 loop = asyncio.get_event_loop()
 
 # ---------- DATA ----------
-data_b = 0                                                              #globale variablen
-data_t = 0
-data_h = 0
-data_p = 0
-data_c = 0
-data_n = 0
+data_b = 0                                                              #globale variablen standardwerte werden festgelegt zur vermeidung von 0-Wert-Ausgabe
+data_t = 20
+data_h = 50
+data_p = 10000
+data_c = 400
+data_n = 30
 bright = []                                                             #Listen, verwendet zum mitteln der Werte
 temp = []
 humid = []
@@ -63,7 +62,6 @@ ws_pin = Pin(6)
 np = neopixel.NeoPixel(Pin(16), 12)                               #1 draht Bus für wled/neopixel protokoll
 
 # ---------- I2C + I2S + SENSORS + OLED----------
-
 i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)          #2 draht i2c Bus für Olded, bh1750, bme280, ccs
 i2s = I2S(0,                                                            #3 draht i2s Bus für Mikrofon 
             sck=sck_pin, ws=ws_pin, sd=sd_pin,
@@ -93,7 +91,7 @@ def connect_wifi():                                         #fn für WLAN
 
 def average(values):                                        #fn zum mitteln der Sensorwerte
     if len(values) > 0:                                     #div by 0 umgehen zur Errorvermeidung
-        if len(values) > 5:                                 #bei  mehr als 5 Werten den ältesten entfernen um Werte aktuell zu halten
+        if len(values) > 10:                                 #bei  mehr als 5 Werten den ältesten entfernen um Werte aktuell zu halten
             values.pop(0)
         return sum(values) / len(values)
     else:
@@ -133,7 +131,7 @@ def led_reset():                                                            #fn 
 async def led():                                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
     global data_t, data_h, data_c, data_n
     passed = 0
-    interval = 1000
+    interval = 500
     while True:
         temp = data_t
         humid = data_h
@@ -215,9 +213,8 @@ async def oled_w():                                                         #sch
     interval = 3000
     index_list = 0
     while True:
-                                                                            #aktualsieren der indexierten liste mit aktuellen Daten
         namen = ['Helligkeit:', 'Temperatur:', 'Feuchtigkeit:', 'Atmos. Druck:', 'Co2 Anteil:', 'Lautstaerke:']
-        werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']
+        werte = [str(int(data_b))  + ' Lux', str(int(data_t)) + ' C', str(int(data_h)) + ' %', str(int(data_p)) + ' hPa', str(int(data_c)) + ' ppm', str(int(data_n)) + ' dBA']                  #aktualsieren der indexierten liste mit aktuellen Daten
         time = ticks_ms()
         if (ticks_diff(time, passed) > interval):
             name = namen[index_list]
@@ -236,55 +233,35 @@ async def oled_w():                                                         #sch
 async def sensors_read():                                                   #schleife zum auslesen aller Sensoren
     global bright, temp, humid, baro, cc, dB, data_b, data_t, data_h, data_p, data_c, data_n
     passed = 0
-    interval = 1000
+    interval = 100
     while True:
         time = ticks_ms()
-        if (ticks_diff(time, passed) > interval):                           #interval von 1er sekunde
-            try:                                                            #errorvermeidung bei i2c problemen
-                b = int(bh1750.measurement)
-                bright.append(b)
-                data_b = average(bright)                                    #werte werden direkt nach abfrage gemittelt, Liste könnte sonst unkontrollierbar lang werden
-            except:
-                print("konnte Helligkeit nicht auslesen")
-            try:                											#lesen mitteln und schreiben von bme temperatur
-                t = int(bme280.value_t)
-                temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
-                data_t = average(temp) -3
-            except:
-                print("konnte Temperatur nicht auslesen")
-            try:                											#lesen mitteln und schreiben von bme feuchtigkeit                
-                h = int(bme280.value_h)
-                humid.append(h)
-                data_h = average(humid)
-            except:
-                print("konnte Feuchtigkeit nicht auslesen")
-            try:                											#lesen mitteln und schreiben von bme druck
-                p = int(bme280.value_p * 0.01)
-                baro.append(p)
-                data_p = average(baro)
-            except:
-                print("konnte atmos. Druck nicht auslesen")
-            try:                											#lesen mitteln und schreiben von ccs co2 anteil
-                if ccs.data_ready():
-                    c = (ccs.eCO2)
-                    if c != 0:
-                        cc.append(c)
-                        data_c = average(cc)
-            except:
-                print("konnte Co2 Gehalt nicht auslesen")
-            try:                											#lesen mitteln und schreiben des microfon Lautstärkewertes (aufruf funktion oben)
-                noise = read_peak()
-                if noise < 120:												#ersten fehlerhaften wwert nach initialisierung filtern
-                    dB.append(noise)
-                    data_n = average(dB)
-            except:
-                print("konnte Lautstärke nicht auslesen")
-                            
-            gc.collect()                                            		#ram säubern
+        if (ticks_diff(time, passed) > interval):                       #interval von 1er sekunde                                                        
+            b = int(bh1750.measurement)
+            bright.append(b)
+            data_b = average(bright)                                    #werte werden direkt nach abfrage gemittelt, Liste könnte sonst unkontrollierbar lang werden           		
+            t = int(bme280.value_t)									    #lesen mitteln und schreiben von bme temperatur
+            temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
+            data_t = average(temp) -3           											               
+            h = int(bme280.value_h)                                     #lesen mitteln und schreiben von bme feuchtigkeit 
+            humid.append(h)
+            data_h = average(humid)           											
+            p = int(bme280.value_p * 0.01)                              #lesen mitteln und schreiben von bme druck
+            baro.append(p)
+            data_p = average(baro)     											
+            if ccs.data_ready():                                        #lesen mitteln und schreiben von ccs co2 anteil
+                c = (ccs.eCO2)
+                if c != 0:
+                    cc.append(c)
+                    data_c = average(cc)
+            noise = read_peak()                                         #lesen mitteln und schreiben des microfon Lautstärkewertes (aufruf funktion Z102)
+            dB.append(noise)
+            data_n = average(dB)                  
+            gc.collect()                                            	#ram säubern
             passed = time
         await asyncio.sleep_ms(10)
 
-async def mqtt_send():                                              		#schleife zum senden der Daten 
+async def mqtt_send():                                              	#schleife zum senden der Daten 
     global CLIENT_ID, MQTT_SERVER, MQTT_TOPIC
     passed = 0
     interval = 5000
@@ -308,17 +285,14 @@ async def mqtt_send():                                              		#schleife 
             gc.collect()
             passed = time
         await asyncio.sleep_ms(10)
+
 # ---------- STARTUP ----------
-
 connect_wifi()
-
 pin_vent.freq(1000)
 pin_vent.duty(1023)                                                         #anstellen des Lüftern
-
 led_reset()
 
 # ---------- LOOP ----------
-
 try:                                                                        #aufsetzen der parallel laufenden Funktionen
     loop.create_task(sensors_read())
     loop.create_task(mqtt_send())
@@ -333,7 +307,3 @@ finally:
     sleep_ms(5000)
     reset()                                                                 #bei error autom. neustart nach 5 sek
     
-
-
-
-
