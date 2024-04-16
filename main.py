@@ -331,7 +331,7 @@ finally:
     loop.close()
     print("automatic reset in 5s")
     sleep_ms(5000)
-    #reset()                                                                 #bei error autom. neustart nach 5 sek
+    reset()                                                                 #bei error autom. neustart nach 5 sek
     
 
 

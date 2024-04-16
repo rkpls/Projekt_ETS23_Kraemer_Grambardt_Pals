@@ -15,4 +15,5 @@ led_ring[8] = (0, 0, 255)
 led_ring[9] = (127, 127, 0)
 led_ring[10] = (127, 127, 0)
 led_ring[11] = (127, 127, 0)
+
 led_ring.write()
