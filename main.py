@@ -241,8 +241,8 @@ async def sensors_read():                                                   #sch
             bright.append(b)
             data_b = average(bright)                                    #werte werden direkt nach abfrage gemittelt, Liste könnte sonst unkontrollierbar lang werden           		
             t = int(bme280.value_t)									    #lesen mitteln und schreiben von bme temperatur
-            temp.append(t)                                              #eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip
-            data_t = average(temp) -3           											               
+            temp.append(t)                                              
+            data_t = average(temp) -3           						#eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip					               
             h = int(bme280.value_h)                                     #lesen mitteln und schreiben von bme feuchtigkeit 
             humid.append(h)
             data_h = average(humid)           											
@@ -272,8 +272,8 @@ async def mqtt_send():                                              	#schleife z
             client.connect()
             werte = {
                 'Bright': int(data_b),
-                'Temp': round(data_t,1),
-                'Humid': round(data_h,1),
+                'Temp': int(data_t),
+                'Humid': int(data_h),
                 'Baro': int(data_p),
                 'Carbon': int(data_c),
                 'Noise': int(data_n),
