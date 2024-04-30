@@ -59,7 +59,7 @@ pin_SCL = 8
 sd_pin = Pin(5)
 sck_pin = Pin(4)
 ws_pin = Pin(6)
-np = neopixel.NeoPixel(Pin(16), 12)                               #1 draht Bus für wled/neopixel protokoll
+np = neopixel.NeoPixel(Pin(16), 12)                                     #1 draht Bus für wled/neopixel protokoll
 
 # ---------- I2C + I2S + SENSORS + OLED----------
 i2c = SoftI2C(scl=Pin(pin_SCL), sda=Pin(pin_SDA), freq=100000)          #2 draht i2c Bus für Olded, bh1750, bme280, ccs
@@ -78,7 +78,7 @@ oled = sh1106.SH1106_I2C(128, 64, i2c, Pin(0), 0x3c)
 oled.sleep(False)
 
 # ----------- DEFS ----------
-def connect_wifi():                                         #fn für WLAN
+def connect_wifi():                                                         #fn für WLAN
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():
@@ -89,15 +89,15 @@ def connect_wifi():                                         #fn für WLAN
     print(wlan.ifconfig())
     return wlan
 
-def average(values):                                        #fn zum mitteln der Sensorwerte
-    if len(values) > 0:                                     #div by 0 umgehen zur Errorvermeidung
-        if len(values) > 10:                                 #bei  mehr als 5 Werten den ältesten entfernen um Werte aktuell zu halten
+def average(values):                                                        #fn zum mitteln der Sensorwerte
+    if len(values) > 0:                                                 #div by 0 umgehen zur Errorvermeidung
+        if len(values) > 10:                                            #bei  mehr als 5 Werten den ältesten entfernen um Werte aktuell zu halten
             values.pop(0)
         return sum(values) / len(values)
     else:
         return 1
     
-def read_peak():                                            #fn für das Mikrofon (aus Bilbliothek)
+def read_peak():                                                            #fn für das Mikrofon (aus Bilbliothek)
   i2s.init(sck=sck_pin, ws=ws_pin, sd=sd_pin,
             mode=I2S.RX,
             bits=32,
@@ -128,7 +128,7 @@ def led_reset():                                                            #fn 
               
 # ---------- THREAD DEF ----------
 
-async def led():                                                             #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
+async def led():                                                            #schleife zum aktualisieren der ws2812's anhand der Limit-Werte aus der Edumap
     global data_t, data_h, data_c, data_n
     passed = 0
     interval = 500
@@ -242,7 +242,7 @@ async def sensors_read():                                                   #sch
             data_b = average(bright)                                    #werte werden direkt nach abfrage gemittelt, Liste könnte sonst unkontrollierbar lang werden           		
             t = int(bme280.value_t)									    #lesen mitteln und schreiben von bme temperatur
             temp.append(t)                                              
-            data_t = average(temp) -3           						#eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip					               
+            data_t = average(temp) -5           						#eventuell ist ein rausrechnen der Erwärmung über gnd pin vom ESP chip					               
             h = int(bme280.value_h)                                     #lesen mitteln und schreiben von bme feuchtigkeit 
             humid.append(h)
             data_h = average(humid)           											
@@ -261,7 +261,7 @@ async def sensors_read():                                                   #sch
             passed = time
         await asyncio.sleep_ms(10)
 
-async def mqtt_send():                                              	#schleife zum senden der Daten 
+async def mqtt_send():                                              	    #schleife zum senden der Daten 
     global CLIENT_ID, MQTT_SERVER, MQTT_TOPIC
     passed = 0
     interval = 5000
