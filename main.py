@@ -34,8 +34,8 @@ ssid = 'BZTG-IoT'                                                       #Schulwl
 password = 'WerderBremen24'
 wlan = network.WLAN(network.STA_IF)
 MQTT_SERVER = 'broker.hivemq.com'
-CLIENT_ID = hexlify(unique_id())
-MQTT_TOPIC = 'sensorwerte/*'
+CLIENT_ID = hexlify(unique_id())                                        #client id für mqtt
+MQTT_TOPIC = 'sensorwerte/*'                                            #mqtt topic
 loop = asyncio.get_event_loop()
 
 # ---------- DATA ----------
@@ -107,7 +107,7 @@ def read_peak():                                                            #fn 
   buffer = bytearray(256)
   i2s.readinto(buffer)
   liste = list(buffer)
-  noise = (sum(liste) / len(liste) +1) / 256 * 91 + 30                      #prozent(logarithmisch) zu dBA [max = 91dB SNR=61dB min = 30]
+  noise = (sum(liste) / len(liste) +1) / 256 * 91 + 30                      #prozent (logarithmisch) zu dBA [max = 91dB SNR=61dB min = 30]
   i2s.deinit()
   return noise
 
@@ -255,8 +255,7 @@ async def sensors_read():                                                   #sch
                     cc.append(c)
                     data_c = average(cc)
             noise = read_peak()                                         #lesen mitteln und schreiben des microfon Lautstärkewertes (aufruf funktion Z102)
-            dB.append(noise)
-            data_n = average(dB)                  
+            data_n = noise                  
             gc.collect()                                            	#ram säubern
             passed = time
         await asyncio.sleep_ms(10)
