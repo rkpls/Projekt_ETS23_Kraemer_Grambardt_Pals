@@ -30,8 +30,8 @@ import CCS811
 import sh1106
 
 # ---------- STATIC VARS ----------
-ssid = 'BZTG-IoT'                                                       #Schulwlan
-password = 'WerderBremen24'
+ssid = '***'                                                       #Schulwlan
+password = '***'
 wlan = network.WLAN(network.STA_IF)
 MQTT_SERVER = 'broker.hivemq.com'
 CLIENT_ID = hexlify(unique_id())                                        #client id für mqtt
